@@ -1,79 +1,59 @@
 # %%
+#!/user/bin/env python3
 # report.py
 #
 # Exercise 2.4
-import csv
-import sys
+from fileparse import parse_csv
+from stock import Stock
+import tableformat
 
 def read_portfolio(filename):
     '''Computes the total cost of a portfolio from a CSV file.
-    filename: the name of the CSV file'''
-    portfolio = []
-    # if len(sys.argv) >= 2:
-    #     filename = sys.argv[1]
-    # else:
-    #     filename = 'Data/portfolio.csv'
-
-    with open(filename) as f:
-        rows = csv.reader(f)  
-        next(rows) # Skip headers
-        for row in rows: 
-            try:
-                holding = {
-                    'name' : row[0],
-                    'shares' : int(row[1]), 
-                    'price' : float(row[2])
-                }
-                portfolio.append(holding)
-            except ValueError:
-                print(f"Error processing line: {row}")
-                continue  # Skip lines with errors
-
+    filename: the name of the CSV file Data/portfolio.csv'''
+    portfolio = None
+    with open(filename) as lines:
+        portdicts = parse_csv(lines,select=['name','shares','price'],types=[str,int,float])
+        portfolio =[Stock(d['name'], d['shares'],d['price']) for d in portdicts]
     return portfolio
 
 def read_prices(filename):
-    prices = {}
-    with open(filename, 'r') as f:
-        rows = csv.reader(f)
-        for rowno, row in enumerate(rows, start=1):
-            try:
-                prices[row[0]] = float(row[1])
-            except IndexError:
-                continue
-            except ValueError:
-                print(f'Row {rowno}: Coudln\'t convert: {row} ')
-    return prices
+    ''' Read the current prices of shares from Data/prices.csv'''
+    prices = None
+    with open(filename) as lines: 
+        prices = parse_csv(lines,has_headers=False,types=[str,float])
+    return dict(prices)
 
-
-def prt_report():
-    spc = 10
-    headers = ('Name', 'Shares', 'Price', 'Change')
-    seperator = '-'*spc
-    
-    print('%10s %10s %10s %10s' % headers)
-    print('%10s %10s %10s %10s' % (seperator,seperator,seperator,seperator))
-
-    
-    for name, share, price, change in show_portfolio():
-        try:
-            print('%10s %10d %10s %10.2f' % (name, share, '$%0.2f' % price, change))
-        except TypeError:
-            print("continue")
-
-def show_portfolio():
-    return make_report('Data/portfolio.csv','Data/prices.csv')
-
-
-def make_report(portfolioName, pricesName):
+def make_report(portfolio, prices):
+    '''Construct the report to be printed'''
     ls = []
-    prices = read_prices('Data/prices.csv')
-    portfolio = read_portfolio('Data/portfolio.csv')
     for s in portfolio:
-        ls.append((s['name'], s['shares'], prices[s['name']], prices[s['name']]-s['price']))
+        ls.append((s.name, s.shares, prices[s.name], prices[s.name]-s.price))
     return ls
 
-        
+def portfolio_report(portfolioFile='Data/portfolio.csv', pricesFile='Data/prices.csv', output_format="txt"):
+    ''' Print a report showing stock holdings. This will consist of Name, shares, purchase price, gain/loss'''
+    # Output the report
+    portfolio = read_portfolio(portfolioFile)
+    prices = read_prices(pricesFile)
+    
+    #Create the report data
+    report = make_report(portfolio, prices)
 
-   
-#print(read_portfolio('Data/portfolio.csv'))
+    # Print the report
+    formatter = tableformat.create_formatter(output_format)
+    print_report(report, formatter)
+
+def print_report(reportdata, formatter):
+    formatter.headings(['Name', 'Shares', 'Price', 'Change'])
+    for name,shares,price, change in reportdata:
+        rowdata = [name, str(shares),f'{price:0.2f}',f'{change:0.2f}']
+        formatter.row(rowdata)
+
+def main(argv):
+    ''' Must supply 3 arguments in order. Portolio filename, Prices filename, output type.'''
+    portfolio_report(argv[1],argv[2],argv[3])
+
+if __name__=='__main__':
+    import sys
+    main(sys.argv)
 # %%

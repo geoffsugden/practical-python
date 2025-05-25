@@ -1,11 +1,11 @@
 # %%
-# # pcost.py
+#!/user/bin/env python3
+#  # pcost.py
 #
 # Exercise 1.27
-import csv
-import sys
+import report
 
-def portfolio_cost(fpath):
+def portfolio_cost(filename):
     """
     Calculate the total cost of the portfolio from a CSV file.
     
@@ -16,27 +16,16 @@ def portfolio_cost(fpath):
         float: The total cost of the portfolio.
     """
     totalcost = 0
-    with open(fpath) as f:
-        rows = csv.reader(f)  
-        headers = next(rows)
-        for rowno, row in enumerate(rows):
-            record = dict(zip(headers,row))
-            try:
-                nshares = int(record['shares'])
-                price = float(record['price'])
-                totalcost += nshares * price 
-            except ValueError:
-                print(f"Row {rowno}: Bad row: {row}")
-                continue  # Skip lines with errors
+    portfolio = report.read_portfolio(filename)
+    for stock in portfolio:
+        totalcost += stock.shares * stock.price
 
     return totalcost
 
-# if len(sys.argv) == 2:
-#     filename = sys.argv[1]
-# else:
-#     filename = 'Data/portfolio.csv'
+def main(argv):
+    print(portfolio_cost(sys.argv[1]))
 
-# cost = portfolio_cost(filename)
-# print(f"Total cost of the portfolio: {cost:.2f}")
-
+if __name__=='__main__':
+    import sys
+    main(sys.argv)
 # %%
